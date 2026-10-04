@@ -3,7 +3,9 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
-import 'api/simple.dart';
+import 'api/client.dart';
+import 'api/error.dart';
+import 'api/session.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -55,7 +57,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 
   @override
   Future<void> executeRustInitializers() async {
-    await api.crateApiSimpleInitApp();
+    await api.crateApiInitInitApp();
   }
 
   @override
@@ -66,7 +68,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -1918914929;
+  int get rustContentHash => -1237922949;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -78,9 +80,40 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  String crateApiSimpleGreet({required String name});
+  Future<SessionDto> crateApiClientMatrixClientHandleLogin({
+    required MatrixClientHandle that,
+    required String homeserver,
+    required String username,
+    required String password,
+    required String dataDir,
+    required String passphrase,
+  });
 
-  Future<void> crateApiSimpleInitApp();
+  Future<void> crateApiClientMatrixClientHandleLogout({
+    required MatrixClientHandle that,
+  });
+
+  MatrixClientHandle crateApiClientMatrixClientHandleNew({
+    required bool allowInsecureLocalhost,
+  });
+
+  Future<void> crateApiClientMatrixClientHandleRestoreSession({
+    required MatrixClientHandle that,
+    required SessionDto session,
+    required String dataDir,
+    required String passphrase,
+  });
+
+  Future<void> crateApiInitInitApp();
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_MatrixClientHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_MatrixClientHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_MatrixClientHandlePtr;
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -92,34 +125,70 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  String crateApiSimpleGreet({required String name}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+  Future<SessionDto> crateApiClientMatrixClientHandleLogin({
+    required MatrixClientHandle that,
+    required String homeserver,
+    required String username,
+    required String password,
+    required String dataDir,
+    required String passphrase,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(homeserver, serializer);
+          sse_encode_String(username, serializer);
+          sse_encode_String(password, serializer);
+          sse_encode_String(dataDir, serializer);
+          sse_encode_String(passphrase, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: null,
+          decodeSuccessData: sse_decode_session_dto,
+          decodeErrorData: sse_decode_matrix_error,
         ),
-        constMeta: kCrateApiSimpleGreetConstMeta,
-        argValues: [name],
+        constMeta: kCrateApiClientMatrixClientHandleLoginConstMeta,
+        argValues: [that, homeserver, username, password, dataDir, passphrase],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSimpleGreetConstMeta =>
-      const TaskConstMeta(debugName: "greet", argNames: ["name"]);
+  TaskConstMeta get kCrateApiClientMatrixClientHandleLoginConstMeta =>
+      const TaskConstMeta(
+        debugName: "MatrixClientHandle_login",
+        argNames: [
+          "that",
+          "homeserver",
+          "username",
+          "password",
+          "dataDir",
+          "passphrase",
+        ],
+      );
 
   @override
-  Future<void> crateApiSimpleInitApp() {
+  Future<void> crateApiClientMatrixClientHandleLogout({
+    required MatrixClientHandle that,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+            that,
+            serializer,
+          );
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -129,17 +198,153 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_matrix_error,
+        ),
+        constMeta: kCrateApiClientMatrixClientHandleLogoutConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientMatrixClientHandleLogoutConstMeta =>
+      const TaskConstMeta(
+        debugName: "MatrixClientHandle_logout",
+        argNames: ["that"],
+      );
+
+  @override
+  MatrixClientHandle crateApiClientMatrixClientHandleNew({
+    required bool allowInsecureLocalhost,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_bool(allowInsecureLocalhost, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiSimpleInitAppConstMeta,
+        constMeta: kCrateApiClientMatrixClientHandleNewConstMeta,
+        argValues: [allowInsecureLocalhost],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientMatrixClientHandleNewConstMeta =>
+      const TaskConstMeta(
+        debugName: "MatrixClientHandle_new",
+        argNames: ["allowInsecureLocalhost"],
+      );
+
+  @override
+  Future<void> crateApiClientMatrixClientHandleRestoreSession({
+    required MatrixClientHandle that,
+    required SessionDto session,
+    required String dataDir,
+    required String passphrase,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_session_dto(session, serializer);
+          sse_encode_String(dataDir, serializer);
+          sse_encode_String(passphrase, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_matrix_error,
+        ),
+        constMeta: kCrateApiClientMatrixClientHandleRestoreSessionConstMeta,
+        argValues: [that, session, dataDir, passphrase],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientMatrixClientHandleRestoreSessionConstMeta =>
+      const TaskConstMeta(
+        debugName: "MatrixClientHandle_restore_session",
+        argNames: ["that", "session", "dataDir", "passphrase"],
+      );
+
+  @override
+  Future<void> crateApiInitInitApp() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiInitInitAppConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSimpleInitAppConstMeta =>
+  TaskConstMeta get kCrateApiInitInitAppConstMeta =>
       const TaskConstMeta(debugName: "init_app", argNames: []);
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_MatrixClientHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_MatrixClientHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle;
+
+  @protected
+  MatrixClientHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return MatrixClientHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  MatrixClientHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return MatrixClientHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  MatrixClientHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return MatrixClientHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
 
   @protected
   String dco_decode_String(dynamic raw) {
@@ -148,9 +353,47 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool dco_decode_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as bool;
+  }
+
+  @protected
+  SessionDto dco_decode_box_autoadd_session_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_session_dto(raw);
+  }
+
+  @protected
+  int dco_decode_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  MatrixError dco_decode_matrix_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return MatrixError.values[raw as int];
+  }
+
+  @protected
+  SessionDto dco_decode_session_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return SessionDto(
+      homeserver: dco_decode_String(arr[0]),
+      userId: dco_decode_String(arr[1]),
+      deviceId: dco_decode_String(arr[2]),
+      accessToken: dco_decode_String(arr[3]),
+    );
   }
 
   @protected
@@ -166,6 +409,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt dco_decode_usize(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeU64(raw);
+  }
+
+  @protected
+  MatrixClientHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return MatrixClientHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  MatrixClientHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return MatrixClientHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  MatrixClientHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return MatrixClientHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_list_prim_u_8_strict(deserializer);
@@ -173,10 +458,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool sse_decode_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint8() != 0;
+  }
+
+  @protected
+  SessionDto sse_decode_box_autoadd_session_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_session_dto(deserializer));
+  }
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getInt32();
+  }
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  MatrixError sse_decode_matrix_error(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return MatrixError.values[inner];
+  }
+
+  @protected
+  SessionDto sse_decode_session_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_homeserver = sse_decode_String(deserializer);
+    var var_userId = sse_decode_String(deserializer);
+    var var_deviceId = sse_decode_String(deserializer);
+    var var_accessToken = sse_decode_String(deserializer);
+    return SessionDto(
+      homeserver: var_homeserver,
+      userId: var_userId,
+      deviceId: var_deviceId,
+      accessToken: var_accessToken,
+    );
   }
 
   @protected
@@ -191,21 +516,75 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer) {
+  BigInt sse_decode_usize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getInt32();
+    return deserializer.buffer.getBigUint64();
   }
 
   @protected
-  bool sse_decode_bool(SseDeserializer deserializer) {
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    MatrixClientHandle self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getUint8() != 0;
+    sse_encode_usize(
+      (self as MatrixClientHandleImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    MatrixClientHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as MatrixClientHandleImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    MatrixClientHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as MatrixClientHandleImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
   }
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
+  }
+
+  @protected
+  void sse_encode_bool(bool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint8(self ? 1 : 0);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_session_dto(
+    SessionDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_session_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putInt32(self);
   }
 
   @protected
@@ -216,6 +595,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
+  }
+
+  @protected
+  void sse_encode_matrix_error(MatrixError self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_session_dto(SessionDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.homeserver, serializer);
+    sse_encode_String(self.userId, serializer);
+    sse_encode_String(self.deviceId, serializer);
+    sse_encode_String(self.accessToken, serializer);
   }
 
   @protected
@@ -230,14 +624,61 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_i_32(int self, SseSerializer serializer) {
+  void sse_encode_usize(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putInt32(self);
+    serializer.buffer.putBigUint64(self);
   }
+}
 
-  @protected
-  void sse_encode_bool(bool self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putUint8(self ? 1 : 0);
-  }
+@sealed
+class MatrixClientHandleImpl extends RustOpaque implements MatrixClientHandle {
+  // Not to be used by end users
+  MatrixClientHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  MatrixClientHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount:
+        RustLib.instance.api.rust_arc_increment_strong_count_MatrixClientHandle,
+    rustArcDecrementStrongCount:
+        RustLib.instance.api.rust_arc_decrement_strong_count_MatrixClientHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_MatrixClientHandlePtr,
+  );
+
+  Future<SessionDto> login({
+    required String homeserver,
+    required String username,
+    required String password,
+    required String dataDir,
+    required String passphrase,
+  }) => RustLib.instance.api.crateApiClientMatrixClientHandleLogin(
+    that: this,
+    homeserver: homeserver,
+    username: username,
+    password: password,
+    dataDir: dataDir,
+    passphrase: passphrase,
+  );
+
+  Future<void> logout() =>
+      RustLib.instance.api.crateApiClientMatrixClientHandleLogout(that: this);
+
+  Future<void> restoreSession({
+    required SessionDto session,
+    required String dataDir,
+    required String passphrase,
+  }) => RustLib.instance.api.crateApiClientMatrixClientHandleRestoreSession(
+    that: this,
+    session: session,
+    dataDir: dataDir,
+    passphrase: passphrase,
+  );
 }

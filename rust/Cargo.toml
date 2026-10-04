@@ -4,10 +4,25 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "staticlib"]
+crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 flutter_rust_bridge = "=2.13.0"
+matrix-sdk = { version = "=0.19.1", default-features = false, features = [
+    "e2e-encryption",
+    "automatic-room-key-forwarding",
+    "bundled-sqlite",
+    "rustls-aws-lc-rs",
+] }
+tokio = { version = "1", features = ["sync"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"
+
+[dev-dependencies]
+rand = "0.10"
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

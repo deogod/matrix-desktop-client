@@ -6,5 +6,13 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-String greet({required String name}) =>
-    RustLib.instance.api.crateApiSimpleGreet(name: name);
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `eq`, `fmt`
+
+enum MatrixError {
+  invalidCredentials,
+  invalidHomeserver,
+  network,
+  sessionExpired,
+  storage,
+  unknown,
+}

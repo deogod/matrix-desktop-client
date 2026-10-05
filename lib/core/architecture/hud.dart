@@ -5,6 +5,8 @@ import 'locator.dart';
 abstract interface class AppHud {
   void showFailure(String message);
 
+  void showMessage(String message);
+
   Future<bool> confirm({
     required String title,
     required String message,
@@ -39,6 +41,23 @@ final class MaterialAppHud implements AppHud {
           behavior: SnackBarBehavior.floating,
           backgroundColor: colors.error,
           content: Text(message, style: TextStyle(color: colors.onError)),
+        ),
+      );
+  }
+
+  @override
+  void showMessage(String message) {
+    final messenger = _messengerKey.currentState;
+    if (messenger == null) return;
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          showCloseIcon: true,
+          duration: const Duration(seconds: 8),
+          content: Text(message),
         ),
       );
   }
@@ -79,6 +98,8 @@ mixin HudMixin {
   AppHud get hud => Locator.instance.get<AppHud>();
 
   void showFailure(String message) => hud.showFailure(message);
+
+  void showMessage(String message) => hud.showMessage(message);
 
   Future<bool> showConfirmation({
     required String title,

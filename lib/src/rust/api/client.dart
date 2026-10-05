@@ -8,7 +8,7 @@ import 'error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'session.dart';
 
-// These functions are ignored because they are not marked as `pub`: `clear_store`, `storage_error`
+// These functions are ignored because they are not marked as `pub`: `remove_other_stores`, `remove_store`, `storage_error`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ActiveSession`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<MatrixClientHandle>>
@@ -21,7 +21,7 @@ abstract class MatrixClientHandle implements RustOpaqueInterface {
     required String passphrase,
   });
 
-  Future<void> logout();
+  Future<LogoutOutcomeDto> logout();
 
   factory MatrixClientHandle({required bool allowInsecureLocalhost}) =>
       RustLib.instance.api.crateApiClientMatrixClientHandleNew(

@@ -9,10 +9,14 @@ use matrix_sdk::{
 use tracing::{info, warn};
 
 use crate::{
-    api::{error::MatrixError, session::SessionDto},
+    api::{
+        error::MatrixError,
+        session::{LogoutOutcomeDto, SessionDto},
+    },
     matrix::{
         errors,
         homeserver::{check_homeserver_url, parse_homeserver_url, HomeserverInput},
+        store::Store,
     },
 };
 
@@ -23,7 +27,7 @@ pub(crate) async fn login(
     homeserver: HomeserverInput,
     username: &str,
     password: &str,
-    store_path: &Path,
+    store: &Store,
     passphrase: &str,
     allow_insecure_localhost: bool,
 ) -> Result<(Client, SessionDto), MatrixError> {
@@ -31,7 +35,7 @@ pub(crate) async fn login(
         HomeserverInput::Url(url) => Client::builder().homeserver_url(url),
         HomeserverInput::ServerName(name) => Client::builder().server_name_or_homeserver_url(name),
     };
-    let client = build_client(builder, store_path, passphrase).await?;
+    let client = build_client(builder, &store.path, passphrase).await?;
 
     let homeserver = client.homeserver();
     if let Err(error) = check_homeserver_url(&homeserver, allow_insecure_localhost) {
@@ -56,6 +60,7 @@ pub(crate) async fn login(
         user_id: response.user_id.to_string(),
         device_id: response.device_id.to_string(),
         access_token: response.access_token,
+        store_id: store.id.clone(),
     };
     Ok((client, session))
 }
@@ -122,13 +127,20 @@ pub(crate) async fn check_session(client: &Client) -> Result<(), MatrixError> {
     Ok(())
 }
 
-pub(crate) async fn logout(client: &Client) {
+pub(crate) async fn logout(client: &Client) -> LogoutOutcomeDto {
     match client.logout().await {
-        Ok(()) => info!("Logged out"),
-        Err(error) if errors::from_sdk_error(&error) == MatrixError::SessionExpired => {
-            info!("Session was already invalid on the homeserver")
+        Ok(()) => {
+            info!("Logged out");
+            LogoutOutcomeDto::Complete
         }
-        Err(error) => warn!(%error, "Server logout failed, clearing local data anyway"),
+        Err(error) if errors::from_sdk_error(&error) == MatrixError::SessionExpired => {
+            info!("Session was already invalid on the homeserver");
+            LogoutOutcomeDto::Complete
+        }
+        Err(error) => {
+            warn!(%error, "Server logout failed, clearing local data anyway");
+            LogoutOutcomeDto::LocalOnly
+        }
     }
 }
 

@@ -10,7 +10,10 @@ use matrix_sdk::{
     SessionMeta, SessionTokens,
 };
 use rand::distr::{Alphanumeric, SampleString};
-use rust_lib_matrix_client::api::{client::MatrixClientHandle, session::SessionDto};
+use rust_lib_matrix_client::api::{
+    client::MatrixClientHandle,
+    session::{LogoutOutcomeDto, SessionDto},
+};
 
 struct Credentials {
     homeserver: String,
@@ -85,7 +88,11 @@ async fn restore_and_logout(session: SessionDto, data_dir: String, passphrase: S
         .restore_session(session.clone(), data_dir.clone(), passphrase)
         .await
         .expect("restore failed");
-    handle.logout().await.expect("logout failed");
+    assert_eq!(
+        handle.logout().await,
+        Ok(LogoutOutcomeDto::Complete),
+        "logout should reach the server"
+    );
 
     let mut entries = fs::read_dir(&data_dir).expect("read data directory");
     assert!(

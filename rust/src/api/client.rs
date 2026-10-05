@@ -9,7 +9,10 @@ use tokio::sync::Mutex;
 use tracing::warn;
 
 use crate::{
-    api::{error::MatrixError, session::SessionDto},
+    api::{
+        error::MatrixError,
+        session::{LogoutOutcomeDto, SessionDto},
+    },
     matrix::{auth, homeserver::parse_homeserver_input, store},
 };
 
@@ -44,15 +47,15 @@ impl MatrixClientHandle {
         let homeserver = parse_homeserver_input(&homeserver, self.allow_insecure_localhost)?;
         let data_dir = PathBuf::from(data_dir);
         let mut active = self.active.lock().await;
-        *active = None;
 
-        // A new passphrase cannot open a previous store, so every login starts from scratch.
-        let store_path = store::reset_store(&data_dir).map_err(storage_error)?;
+        // Every login gets a new empty store. Previous stores are only removed after the
+        // login succeeds, so a failed attempt keeps a saved session restorable.
+        let new_store = store::create_store(&data_dir).map_err(storage_error)?;
         let result = auth::login(
             homeserver,
             &username,
             &password,
-            &store_path,
+            &new_store,
             &passphrase,
             self.allow_insecure_localhost,
         )
@@ -60,11 +63,15 @@ impl MatrixClientHandle {
 
         match result {
             Ok((client, session)) => {
-                *active = Some(ActiveSession { client, data_dir });
+                *active = Some(ActiveSession {
+                    client,
+                    data_dir: data_dir.clone(),
+                });
+                remove_other_stores(&data_dir, &new_store.id);
                 Ok(session)
             }
             Err(error) => {
-                clear_store(&data_dir);
+                remove_store(&data_dir, &new_store.id);
                 Err(error)
             }
         }
@@ -81,14 +88,15 @@ impl MatrixClientHandle {
         *active = None;
 
         // An empty crypto store would get new keys for a device the server already knows.
-        if !store::store_exists(&data_dir) {
+        let Some(store_path) = store::existing_store(&data_dir, &session.store_id) else {
             warn!("No local store to restore the session from");
             return Err(MatrixError::Storage);
-        }
+        };
 
+        let store_id = session.store_id.clone();
         let client = auth::restore(
             session,
-            &store::store_path(&data_dir),
+            &store_path,
             &passphrase,
             self.allow_insecure_localhost,
         )
@@ -96,23 +104,29 @@ impl MatrixClientHandle {
 
         if let Err(error) = auth::check_session(&client).await {
             drop(client);
-            clear_store(&data_dir);
+            remove_store(&data_dir, &store_id);
             return Err(error);
         }
 
-        *active = Some(ActiveSession { client, data_dir });
+        *active = Some(ActiveSession {
+            client,
+            data_dir: data_dir.clone(),
+        });
+        // Leftovers from a login that was interrupted before finishing.
+        remove_other_stores(&data_dir, &store_id);
         Ok(())
     }
 
-    pub async fn logout(&self) -> Result<(), MatrixError> {
+    pub async fn logout(&self) -> Result<LogoutOutcomeDto, MatrixError> {
         let mut active = self.active.lock().await;
         let Some(ActiveSession { client, data_dir }) = active.take() else {
-            return Ok(());
+            return Ok(LogoutOutcomeDto::Complete);
         };
 
-        auth::logout(&client).await;
+        let outcome = auth::logout(&client).await;
         drop(client);
-        store::remove_store(&data_dir).map_err(storage_error)
+        store::remove_all_stores(&data_dir).map_err(storage_error)?;
+        Ok(outcome)
     }
 }
 
@@ -121,8 +135,14 @@ fn storage_error(error: io::Error) -> MatrixError {
     MatrixError::Storage
 }
 
-fn clear_store(data_dir: &Path) {
-    if let Err(error) = store::remove_store(data_dir) {
+fn remove_store(data_dir: &Path, id: &str) {
+    if let Err(error) = store::remove_store(data_dir, id) {
         warn!(%error, "Could not remove the store");
+    }
+}
+
+fn remove_other_stores(data_dir: &Path, keep_id: &str) {
+    if let Err(error) = store::remove_other_stores(data_dir, keep_id) {
+        warn!(%error, "Could not remove previous stores");
     }
 }

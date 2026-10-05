@@ -366,6 +366,18 @@ impl SseDecode for Vec<u8> {
     }
 }
 
+impl SseDecode for crate::api::session::LogoutOutcomeDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::session::LogoutOutcomeDto::Complete,
+            1 => crate::api::session::LogoutOutcomeDto::LocalOnly,
+            _ => unreachable!("Invalid variant for LogoutOutcomeDto: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::api::error::MatrixError {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -389,11 +401,13 @@ impl SseDecode for crate::api::session::SessionDto {
         let mut var_userId = <String>::sse_decode(deserializer);
         let mut var_deviceId = <String>::sse_decode(deserializer);
         let mut var_accessToken = <String>::sse_decode(deserializer);
+        let mut var_storeId = <String>::sse_decode(deserializer);
         return crate::api::session::SessionDto {
             homeserver: var_homeserver,
             user_id: var_userId,
             device_id: var_deviceId,
             access_token: var_accessToken,
+            store_id: var_storeId,
         };
     }
 }
@@ -483,6 +497,27 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<MatrixClientHandle>> for Matri
 }
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::session::LogoutOutcomeDto {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Complete => 0.into_dart(),
+            Self::LocalOnly => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::session::LogoutOutcomeDto
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::session::LogoutOutcomeDto>
+    for crate::api::session::LogoutOutcomeDto
+{
+    fn into_into_dart(self) -> crate::api::session::LogoutOutcomeDto {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::error::MatrixError {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -515,6 +550,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::session::SessionDto {
             self.user_id.into_into_dart().into_dart(),
             self.device_id.into_into_dart().into_dart(),
             self.access_token.into_into_dart().into_dart(),
+            self.store_id.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -580,6 +616,22 @@ impl SseEncode for Vec<u8> {
     }
 }
 
+impl SseEncode for crate::api::session::LogoutOutcomeDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::session::LogoutOutcomeDto::Complete => 0,
+                crate::api::session::LogoutOutcomeDto::LocalOnly => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::api::error::MatrixError {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -607,6 +659,7 @@ impl SseEncode for crate::api::session::SessionDto {
         <String>::sse_encode(self.user_id, serializer);
         <String>::sse_encode(self.device_id, serializer);
         <String>::sse_encode(self.access_token, serializer);
+        <String>::sse_encode(self.store_id, serializer);
     }
 }
 

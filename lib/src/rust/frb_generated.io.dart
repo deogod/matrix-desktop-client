@@ -58,6 +58,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  LogoutOutcomeDto dco_decode_logout_outcome_dto(dynamic raw);
+
+  @protected
   MatrixError dco_decode_matrix_error(dynamic raw);
 
   @protected
@@ -104,6 +107,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  LogoutOutcomeDto sse_decode_logout_outcome_dto(SseDeserializer deserializer);
 
   @protected
   MatrixError sse_decode_matrix_error(SseDeserializer deserializer);
@@ -159,6 +165,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_logout_outcome_dto(
+    LogoutOutcomeDto self,
     SseSerializer serializer,
   );
 

@@ -16,6 +16,14 @@ Decisão: `api/` contém só o `MatrixClientHandle` opaco (estado da sessão e c
 
 Alternativas: implementar tudo dentro dos métodos do handle, misturando estado, regras e chamadas ao SDK.
 
+## Dart em três camadas
+
+Contexto: usecases e datasources separados seriam só repasse entre o bloc e o handle Rust.
+
+Decisão: `Rust → Repository → Bloc → StableData → Tela`. O repository é a fronteira com o Rust: chama o `MatrixClientHandle`, converte DTO em entity com funções privadas no próprio arquivo e devolve `Result<T>` via `guard`. `lib/src/rust/` só é importado por repositories, `core/failure_mapper.dart`, `core/injector.dart` e `main.dart`. Um único `MatrixClientHandle` é criado no injector, porque a sessão vive nele e as próximas features vão usar a mesma instância.
+
+Alternativas: camadas data/domain/presentation com usecases e datasources, que nesse tamanho só acrescentam arquivos.
+
 ## Resolução do homeserver
 
 Contexto: usuários costumam digitar o nome do servidor (`matrix.org`), que nem sempre é o endereço da API (`https://matrix-client.matrix.org`).
@@ -37,13 +45,29 @@ Decisão: só `https` é aceito. `http` é aceito apenas para `localhost`, `127.
 
 Alternativas: usar `cfg!(debug_assertions)` no Rust, o que acopla a regra ao perfil do cargokit e dificulta testar os dois casos.
 
-## Store do SDK num subdiretório fixo
+## Um store por login
 
-Contexto: o store SQLite é criptografado com uma passphrase gerada no login. Uma passphrase nova não abre um store antigo.
+Contexto: o store SQLite é criptografado com uma passphrase gerada a cada login, e uma passphrase nova não abre um store antigo. Ao mesmo tempo, uma tentativa de login com senha errada não pode destruir uma sessão salva. O cliente do login não pode ser reaberto em outro diretório depois do sucesso, porque tarefas de E2EE do SDK continuam segurando o store em segundo plano.
 
-Decisão: o Dart informa o diretório de dados e o Rust usa sempre `<data_dir>/store`. Esse subdiretório é recriado a cada login, apagado quando o login falha, no logout e quando a sessão expira. Apagar só esse subdiretório garante que um caminho errado vindo do Dart nunca leve a apagar outros arquivos. Na restauração, se o store não existir, o retorno é `Storage`: abrir um crypto store vazio criaria chaves novas para um dispositivo que o servidor já conhece.
+Decisão: cada login cria `<data_dir>/stores/<id aleatório>` vazio e usa esse diretório até o fim. Se o login falhar, só esse diretório é apagado. Se der certo, os outros stores são apagados. O id volta no `SessionDto` como `store_id`, é salvo junto com a sessão e é validado na restauração (só letras e números), para que um valor adulterado não aponte para fora de `stores/`. O Rust nunca apaga nada fora de `<data_dir>/stores`. Na restauração, se o store não existir, o retorno é `Storage`: abrir um crypto store vazio criaria chaves novas para um dispositivo que o servidor já conhece. O logout e a sessão expirada apagam o store.
 
-Alternativas: o Dart apagar o diretório; reaproveitar o store entre logins.
+Alternativas: um diretório fixo recriado antes do login (uma senha errada apagava o store da sessão salva); fechar e reabrir o cliente num diretório definitivo depois do login (o SDK mantém o store aberto em tarefas de fundo); usar o device_id enviado pelo cliente como nome do diretório (dependeria de o servidor respeitar o id enviado).
+
+## Sessão e passphrase no secure storage
+
+Contexto: o access token e a passphrase do store não podem ficar em arquivos comuns.
+
+Decisão: homeserver, user id, device id, token, store id e passphrase são gravados juntos, como JSON, numa única chave do `flutter_secure_storage`, para que nunca fiquem dessincronizados. A passphrase são 32 bytes de `Random.secure()`, gerada a cada login, já que o store é sempre novo. A sessão salva só é sobrescrita depois que o login dá certo. Se a gravação falhar, o repository faz logout no handle para não deixar no servidor uma sessão que nunca poderia ser restaurada.
+
+Alternativas: chaves separadas para cada campo; reaproveitar a passphrase entre logins.
+
+## Keychain no macOS
+
+Contexto: por padrão o `flutter_secure_storage` 11 usa no macOS o keychain de proteção de dados, que exige o entitlement `keychain-access-groups`. O projeto é assinado ad hoc, sem Team de desenvolvimento.
+
+Decisão: `MacOsOptions(usesDataProtectionKeychain: false)`, que usa o keychain tradicional, e nenhum `keychain-access-groups` nos entitlements. Verificado com `integration_test/secure_storage_test.dart` no macOS: com o entitlement, o Xcode recusa o build ("requires signing with a development certificate"); sem o entitlement e com o padrão, a gravação falha com -34018 (`errSecMissingEntitlement`); sem o entitlement e com a opção, grava, lê e apaga normalmente.
+
+Alternativas: configurar um Team e provisioning profile, o que impede rodar o projeto em outra máquina sem conta de desenvolvedor.
 
 ## MatrixError sem campos
 
@@ -74,7 +98,7 @@ Alternativas: manter o padrão do SDK; configurar requisição por requisição.
 
 Contexto: `restore_session` do SDK não fala com o servidor, e o app precisa abrir offline.
 
-Decisão: depois de restaurar, o handle chama `whoami`. Só 401 ou `M_UNKNOWN_TOKEN` encerram a sessão (store apagado, retorno `SessionExpired`). Erro de rede ou qualquer outra falha mantém a sessão restaurada e é registrado em log.
+Decisão: a restauração usa o homeserver salvo (o endereço já resolvido no login), sem refazer a descoberta. Depois de restaurar, o handle chama `whoami`. Só 401 ou `M_UNKNOWN_TOKEN` encerram a sessão (store apagado, retorno `SessionExpired`). Erro de rede ou qualquer outra falha mantém a sessão restaurada e é registrado em log. No Dart, sessão expirada, store indisponível, homeserver inválido ou dado salvo corrompido apagam o secure storage; falha de rede ou desconhecida mantém os dados para a próxima abertura.
 
 Alternativas: não validar (o token expirado só apareceria no sync); exigir rede para abrir o app.
 
@@ -82,9 +106,17 @@ Alternativas: não validar (o token expirado só apareceria no sync); exigir red
 
 Contexto: o logout precisa encerrar a sessão no servidor e apagar os dados locais, mas o servidor pode estar inacessível.
 
-Decisão: o logout no servidor é tentado. Se o token já for inválido, conta como sucesso. Outras falhas são registradas e não impedem a limpeza local. O `Client` é liberado antes de apagar o store. O retorno só é erro (`Storage`) se não for possível apagar o store.
+Decisão: o logout no servidor é tentado e o resultado volta como `LogoutOutcomeDto`: `Complete` quando o servidor revogou o token (ou ele já era inválido) e `LocalOnly` quando o servidor não respondeu. Nos dois casos o store e o secure storage são apagados e o app volta para o login. Com `LocalOnly`, a tela avisa que a sessão foi encerrada só neste computador e que o acesso pode continuar ativo no servidor. Para esse aviso, a `AppHud` ganhou `showMessage`, uma snackbar neutra, porque não é um erro.
 
-Alternativas: falhar e manter a sessão quando o servidor não responde, deixando o usuário preso logado.
+Alternativas: falhar e manter a sessão quando o servidor não responde, deixando o usuário preso logado; encerrar em silêncio, escondendo que o token pode continuar válido.
+
+## Testes do handle com servidor simulado
+
+Contexto: login, restauração e logout dependem de respostas do homeserver, e o teste contra servidor real precisa de credenciais.
+
+Decisão: `rust/tests/handle_flow.rs` usa `wiremock` para simular o homeserver e roda no `cargo test` comum. Cada teste cria o próprio servidor com `MockServer::builder()`, porque o `MockServer::start()` reaproveita servidores de um pool: soltar o servidor não fecha a porta, e os testes de servidor inacessível passariam por engano. `rust/tests/auth_flow.rs` continua como teste ignorado contra um servidor real.
+
+Alternativas: só o teste contra servidor real.
 
 ## Logs
 

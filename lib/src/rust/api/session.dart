@@ -6,19 +6,23 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `eq`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`
+
+enum LogoutOutcomeDto { complete, localOnly }
 
 class SessionDto {
   final String homeserver;
   final String userId;
   final String deviceId;
   final String accessToken;
+  final String storeId;
 
   const SessionDto({
     required this.homeserver,
     required this.userId,
     required this.deviceId,
     required this.accessToken,
+    required this.storeId,
   });
 
   @override
@@ -26,7 +30,8 @@ class SessionDto {
       homeserver.hashCode ^
       userId.hashCode ^
       deviceId.hashCode ^
-      accessToken.hashCode;
+      accessToken.hashCode ^
+      storeId.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -36,5 +41,6 @@ class SessionDto {
           homeserver == other.homeserver &&
           userId == other.userId &&
           deviceId == other.deviceId &&
-          accessToken == other.accessToken;
+          accessToken == other.accessToken &&
+          storeId == other.storeId;
 }

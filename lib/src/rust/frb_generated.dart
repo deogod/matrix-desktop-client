@@ -89,7 +89,7 @@ abstract class RustLibApi extends BaseApi {
     required String passphrase,
   });
 
-  Future<void> crateApiClientMatrixClientHandleLogout({
+  Future<LogoutOutcomeDto> crateApiClientMatrixClientHandleLogout({
     required MatrixClientHandle that,
   });
 
@@ -178,7 +178,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiClientMatrixClientHandleLogout({
+  Future<LogoutOutcomeDto> crateApiClientMatrixClientHandleLogout({
     required MatrixClientHandle that,
   }) {
     return handler.executeNormal(
@@ -197,7 +197,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+          decodeSuccessData: sse_decode_logout_outcome_dto,
           decodeErrorData: sse_decode_matrix_error,
         ),
         constMeta: kCrateApiClientMatrixClientHandleLogoutConstMeta,
@@ -377,6 +377,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  LogoutOutcomeDto dco_decode_logout_outcome_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return LogoutOutcomeDto.values[raw as int];
+  }
+
+  @protected
   MatrixError dco_decode_matrix_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return MatrixError.values[raw as int];
@@ -386,13 +392,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SessionDto dco_decode_session_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return SessionDto(
       homeserver: dco_decode_String(arr[0]),
       userId: dco_decode_String(arr[1]),
       deviceId: dco_decode_String(arr[2]),
       accessToken: dco_decode_String(arr[3]),
+      storeId: dco_decode_String(arr[4]),
     );
   }
 
@@ -483,6 +490,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  LogoutOutcomeDto sse_decode_logout_outcome_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return LogoutOutcomeDto.values[inner];
+  }
+
+  @protected
   MatrixError sse_decode_matrix_error(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
@@ -496,11 +510,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_userId = sse_decode_String(deserializer);
     var var_deviceId = sse_decode_String(deserializer);
     var var_accessToken = sse_decode_String(deserializer);
+    var var_storeId = sse_decode_String(deserializer);
     return SessionDto(
       homeserver: var_homeserver,
       userId: var_userId,
       deviceId: var_deviceId,
       accessToken: var_accessToken,
+      storeId: var_storeId,
     );
   }
 
@@ -598,6 +614,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_logout_outcome_dto(
+    LogoutOutcomeDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_matrix_error(MatrixError self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
@@ -610,6 +635,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.userId, serializer);
     sse_encode_String(self.deviceId, serializer);
     sse_encode_String(self.accessToken, serializer);
+    sse_encode_String(self.storeId, serializer);
   }
 
   @protected
@@ -668,7 +694,7 @@ class MatrixClientHandleImpl extends RustOpaque implements MatrixClientHandle {
     passphrase: passphrase,
   );
 
-  Future<void> logout() =>
+  Future<LogoutOutcomeDto> logout() =>
       RustLib.instance.api.crateApiClientMatrixClientHandleLogout(that: this);
 
   Future<void> restoreSession({

@@ -4,6 +4,7 @@ use matrix_sdk::{
     authentication::matrix::MatrixSession,
     config::RequestConfig,
     ruma::{api::client::account::whoami, UserId},
+    sliding_sync::VersionBuilder as SlidingSyncVersionBuilder,
     Client, ClientBuilder, SessionMeta, SessionTokens,
 };
 use tracing::{info, warn};
@@ -42,6 +43,7 @@ pub(crate) async fn login(
         warn!(%homeserver, "Discovered homeserver is not allowed");
         return Err(error);
     }
+    ensure_sliding_sync(&client).await?;
 
     let response = client
         .matrix_auth()
@@ -142,6 +144,26 @@ pub(crate) async fn logout(client: &Client) -> LogoutOutcomeDto {
             LogoutOutcomeDto::LocalOnly
         }
     }
+}
+
+// The room list relies on sliding sync (MSC4186). Checking it before logging in avoids
+// creating a device on a homeserver the app could never sync with.
+async fn ensure_sliding_sync(client: &Client) -> Result<(), MatrixError> {
+    let supported = client.supported_versions().await.map_err(|error| {
+        warn!(%error, "Could not read the homeserver versions");
+        match errors::from_http_error(&error) {
+            MatrixError::Network => MatrixError::Network,
+            _ => MatrixError::InvalidHomeserver,
+        }
+    })?;
+    if SlidingSyncVersionBuilder::DiscoverNative
+        .build(Some(&supported))
+        .is_err()
+    {
+        warn!("Homeserver does not support sliding sync");
+        return Err(MatrixError::UnsupportedHomeserver);
+    }
+    Ok(())
 }
 
 async fn build_client(

@@ -14,5 +14,6 @@ enum MatrixError {
   network,
   sessionExpired,
   storage,
+  unsupportedHomeserver,
   unknown,
 }

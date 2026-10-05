@@ -17,6 +17,15 @@ Verificação de dispositivo e cross-signing, mídia, edição, reações, threa
 - Para um servidor local sem TLS é preciso digitar o esquema (`http://localhost:8008`). Sem esquema, `localhost:8008` é tratado como nome de servidor e resolvido via https.
 - Um nome de servidor digitado errado aparece como falha de rede, porque o erro de DNS não se distingue de falta de conexão.
 
+## Sync e lista de salas
+
+- Só funcionam servidores com Sliding Sync simplificado (MSC4186), como o matrix.org e versões recentes do Synapse. Os demais são recusados no login.
+- A lista mostra as 200 salas mais recentes, sem paginação.
+- Avatares são só a inicial do nome; imagens de avatar ficam para quando houver suporte a mídia.
+- Convites e espaços não aparecem na lista.
+- Se um servidor deixar de oferecer MSC4186 depois do login, a restauração funciona, mas o indicador alterna entre offline e sincronizando.
+- O fechamento com parada do sync foi verificado só no macOS.
+
 ## Armazenamento seguro
 
 - No macOS é usado o keychain tradicional (ver DECISIONS). O acesso ao item fica atrelado à assinatura do app; não foi verificado se, com assinatura ad hoc, uma recompilação do código nativo faz o macOS pedir permissão para ler a sessão salva.

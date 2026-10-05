@@ -1,4 +1,6 @@
 pub(crate) mod auth;
 pub(crate) mod errors;
 pub(crate) mod homeserver;
+pub(crate) mod rooms;
 pub(crate) mod store;
+pub(crate) mod sync;

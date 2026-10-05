@@ -7,17 +7,21 @@ edition = "2021"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
+anyhow = "1"
 flutter_rust_bridge = "=2.13.0"
+futures-util = "0.3"
 matrix-sdk = { version = "=0.19.1", default-features = false, features = [
     "e2e-encryption",
     "automatic-room-key-forwarding",
     "bundled-sqlite",
     "rustls-aws-lc-rs",
 ] }
+matrix-sdk-ui = { version = "=0.19.1", default-features = false }
 rand = "0.10"
-tokio = { version = "1", features = ["sync"] }
+tokio = { version = "1", features = ["macros", "rt", "sync"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+unicode-segmentation = "1"
 url = "2"
 
 [dev-dependencies]

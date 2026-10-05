@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../features/auth/login/login_page.dart';
 import '../features/auth/splash/splash_page.dart';
-import '../features/home/home_page.dart';
+import '../features/rooms/rooms_page.dart';
 
 abstract final class Routes {
   static const splash = '/';
@@ -12,6 +12,6 @@ abstract final class Routes {
   static final Map<String, WidgetBuilder> builders = {
     splash: (_) => const SplashPage(),
     login: (_) => const LoginPage(),
-    home: (_) => const HomePage(),
+    home: (_) => const RoomsPage(),
   };
 }

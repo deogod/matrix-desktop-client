@@ -4,7 +4,7 @@
 
 Contexto: o cliente precisa de TLS, store persistente e suporte a salas criptografadas nas três plataformas desktop.
 
-Decisão: `matrix-sdk = "=0.19.1"` com `default-features = false` e as features `e2e-encryption`, `automatic-room-key-forwarding`, `bundled-sqlite` e `rustls-aws-lc-rs`. Nessa versão o reqwest usa sempre rustls; a feature só escolhe o provider de criptografia. O SQLite vai embutido porque o Windows não tem `libsqlite3` e no Linux exigiria o pacote de desenvolvimento. Quando o `matrix-sdk-ui` entrar, será fixado na mesma versão.
+Decisão: `matrix-sdk = "=0.19.1"` com `default-features = false` e as features `e2e-encryption`, `automatic-room-key-forwarding`, `bundled-sqlite` e `rustls-aws-lc-rs`. O `matrix-sdk-ui` é fixado na mesma versão, `=0.19.1`, e o lockfile resolve todos os crates `matrix-sdk-*` numa única versão. Nessa versão o reqwest usa sempre rustls; a feature só escolhe o provider de criptografia. O SQLite vai embutido porque o Windows não tem `libsqlite3` e no Linux exigiria o pacote de desenvolvimento.
 
 Alternativas: manter as features default (equivalente hoje, mas implícito e sem SQLite embutido); usar o SQLite do sistema.
 
@@ -110,11 +110,69 @@ Decisão: o logout no servidor é tentado e o resultado volta como `LogoutOutcom
 
 Alternativas: falhar e manter a sessão quando o servidor não responde, deixando o usuário preso logado; encerrar em silêncio, escondendo que o token pode continuar válido.
 
+## Sync com matrix-sdk-ui
+
+Contexto: a lista de salas precisa vir ordenada por atividade recente, com a última mensagem e as não lidas, atualizar em tempo real e informar o estado da conexão.
+
+Decisão: `SyncService` e `RoomListService` do `matrix-sdk-ui`. O `RoomListService` entrega a lista já ordenada (último evento local primeiro, depois recência e nome) e com atualizações incrementais; o `LatestEvents` calcula a última mensagem exibível, inclusive as que ainda estão sendo enviadas; as não lidas são as calculadas no cliente, mais precisas em salas cifradas; o `SyncService` coordena o sync da lista e o de criptografia e, com `with_offline_mode`, volta sozinho quando a rede volta. O `Timeline` da próxima etapa vem do mesmo crate. O custo é exigir Sliding Sync simplificado (MSC4186) no servidor; por isso o login consulta `/versions` antes de autenticar e recusa, com `UnsupportedHomeserver`, um servidor que não anuncia `org.matrix.simplified_msc3575`, sem criar dispositivo nele.
+
+O sync começa logo depois do login ou da restauração. O último evento só é calculado para salas em que alguém chama `LatestEvents::listen_to_room`, então isso é feito para cada sala que entra na lista. São listadas as salas em que o usuário entrou, sem espaços e sem versões antigas de salas atualizadas.
+
+Alternativas: `/sync` v3 manual, que funciona em qualquer servidor mas exigiria implementar ordenação por recência, cálculo da última mensagem, reconexão e estado da conexão.
+
+## Estado da conexão
+
+Contexto: o indicador mostra conectado, sincronizando ou offline, e a sessão pode expirar com o app aberto.
+
+Decisão: o estado combina o do `SyncService` e o do `RoomListService` numa função pura: sync parado por erro ou em modo offline vira `Offline`; sync rodando com a lista ainda carregando vira `Syncing`; lista rodando vira `Connected`. No modo offline o `SyncService` alterna entre offline e rodando a cada falha, inclusive com o token revogado, então a expiração é detectada por `Client::subscribe_to_session_changes` (`UnknownToken`): o sync é parado e o estado vira `SessionExpired`. A tela de salas, ao receber esse estado, apaga os dados locais e volta ao login com a mensagem de sessão expirada.
+
+Alternativas: usar o `sync_indicator` do `RoomListService`, que só diz mostrar ou esconder e não distingue offline de sincronizando.
+
+## Lista de salas enviada inteira ao Dart
+
+Contexto: o `RoomListService` publica a lista como uma sequência de `VectorDiff`.
+
+Decisão: o Rust aplica os diffs numa lista de `RoomDto`, convertendo de novo só as salas afetadas, e envia a lista inteira ao Dart a cada mudança. Com dezenas ou centenas de salas o custo é pequeno, e o Dart não precisa reproduzir diffs. A prévia é limitada a uma linha de até 200 caracteres para não trafegar mensagens longas a cada atualização.
+
+Alternativas: expor os diffs pela ponte e reaplicá-los no Dart.
+
+## Prévia estruturada
+
+Contexto: a prévia da última mensagem tem texto em português ("Você: ...", "Imagem").
+
+Decisão: o Rust manda `LastMessageDto` com tipo da mensagem, corpo, nome do remetente e se é própria, e o Dart monta o texto. Assim o texto de interface fica todo no Dart. Em conversa direta o remetente é omitido, porque o nome da sala já diz quem escreveu.
+
+Alternativas: o Rust devolver a frase pronta.
+
+## Streams pela ponte
+
+Contexto: no flutter_rust_bridge, uma função que recebe `StreamSink` é chamada sem `await` no Dart. Um `Err` devolvido por ela não chega ao stream e vira erro assíncrono não tratado. Os erros enviados pelo próprio sink chegam ao Dart como `AnyhowException`.
+
+Decisão: `rooms` e `sync_state` não devolvem `Result`. Sem sessão ativa, `sync_state` emite `SessionExpired`; se a lista não puder ser aberta, `rooms` envia um erro pelo sink e o stream fecha. As tasks que alimentam os streams ficam guardadas na sessão: no logout elas são abortadas, os sinks são soltos e os streams no Dart fecham. Quando o Dart cancela a assinatura, a task termina no envio seguinte.
+
+Alternativas: devolver `Result` e perder o erro; um enum com dados para sucesso ou falha, que exigiria freezed.
+
+## Falhas na lista de salas
+
+Contexto: o stream de salas pode falhar com a tela já preenchida.
+
+Decisão: `ErrorState` só quando o stream falha antes da primeira lista, porque aí não há o que mostrar. Depois disso, as salas na tela são mantidas, a falha aparece pela HUD e o indicador de conexão mostra o estado.
+
+Alternativas: trocar a tela inteira por erro a qualquer falha, perdendo a lista.
+
+## Parada do sync
+
+Contexto: o sync deve parar no logout e ao fechar o app.
+
+Decisão: o logout para o `SyncService` antes de encerrar a sessão no servidor. Ao fechar o app, um `AppLifecycleListener` com `onExitRequested` chama `stopSync()` com timeout de 2 segundos, para o app fechar mesmo sem rede. Verificado no macOS: pedir para sair chama o callback, o sync para e o app fecha em cerca de 1 segundo.
+
+Alternativas: deixar o processo encerrar o sync, sem dar ao SDK a chance de terminar as requisições em andamento.
+
 ## Testes do handle com servidor simulado
 
 Contexto: login, restauração e logout dependem de respostas do homeserver, e o teste contra servidor real precisa de credenciais.
 
-Decisão: `rust/tests/handle_flow.rs` usa `wiremock` para simular o homeserver e roda no `cargo test` comum. Cada teste cria o próprio servidor com `MockServer::builder()`, porque o `MockServer::start()` reaproveita servidores de um pool: soltar o servidor não fecha a porta, e os testes de servidor inacessível passariam por engano. `rust/tests/auth_flow.rs` continua como teste ignorado contra um servidor real.
+Decisão: `rust/tests/handle_flow.rs` usa `wiremock` para simular o homeserver e roda no `cargo test` comum. O mock anuncia MSC4186 e responde ao sliding sync como um long poll ocioso, para o sync iniciado após o login não gerar tráfego nos testes. Cada teste cria o próprio servidor com `MockServer::builder()`, porque o `MockServer::start()` reaproveita servidores de um pool: soltar o servidor não fecha a porta, e os testes de servidor inacessível passariam por engano. `rust/tests/auth_flow.rs` continua como teste ignorado contra um servidor real.
 
 Alternativas: só o teste contra servidor real.
 

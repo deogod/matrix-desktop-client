@@ -10,6 +10,10 @@ Failure mapFailure(Object error) => switch (error) {
       MatrixError.network => const NetworkFailure(),
       MatrixError.sessionExpired => const SessionExpiredFailure(),
       MatrixError.storage => const StorageFailure(),
+      MatrixError.unsupportedHomeserver => const InvalidHomeserverFailure(
+          'Este servidor não oferece o Sliding Sync (MSC4186), necessário '
+          'para este app.',
+        ),
       MatrixError.unknown => const UnknownFailure(),
       PlatformException() ||
       FormatException() ||

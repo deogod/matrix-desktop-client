@@ -5,6 +5,7 @@
 
 import 'api/client.dart';
 import 'api/error.dart';
+import 'api/room.dart';
 import 'api/session.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -25,6 +26,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandlePtr;
 
   @protected
+  AnyhowException dco_decode_AnyhowException(dynamic raw);
+
+  @protected
   MatrixClientHandle
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
     dynamic raw,
@@ -43,10 +47,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustStreamSink<List<RoomDto>> dco_decode_StreamSink_list_room_dto_Sse(
+    dynamic raw,
+  );
+
+  @protected
+  RustStreamSink<SyncStateDto> dco_decode_StreamSink_sync_state_dto_Sse(
+    dynamic raw,
+  );
+
+  @protected
   String dco_decode_String(dynamic raw);
 
   @protected
   bool dco_decode_bool(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  LastMessageDto dco_decode_box_autoadd_last_message_dto(dynamic raw);
 
   @protected
   SessionDto dco_decode_box_autoadd_session_dto(dynamic raw);
@@ -55,7 +75,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_i_32(dynamic raw);
 
   @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  LastMessageDto dco_decode_last_message_dto(dynamic raw);
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  List<RoomDto> dco_decode_list_room_dto(dynamic raw);
 
   @protected
   LogoutOutcomeDto dco_decode_logout_outcome_dto(dynamic raw);
@@ -64,7 +93,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   MatrixError dco_decode_matrix_error(dynamic raw);
 
   @protected
+  MessageKindDto dco_decode_message_kind_dto(dynamic raw);
+
+  @protected
+  String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  LastMessageDto? dco_decode_opt_box_autoadd_last_message_dto(dynamic raw);
+
+  @protected
+  RoomDto dco_decode_room_dto(dynamic raw);
+
+  @protected
   SessionDto dco_decode_session_dto(dynamic raw);
+
+  @protected
+  SyncStateDto dco_decode_sync_state_dto(dynamic raw);
+
+  @protected
+  int dco_decode_u_32(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -74,6 +124,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt dco_decode_usize(dynamic raw);
+
+  @protected
+  AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
   MatrixClientHandle
@@ -94,10 +147,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustStreamSink<List<RoomDto>> sse_decode_StreamSink_list_room_dto_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustStreamSink<SyncStateDto> sse_decode_StreamSink_sync_state_dto_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  LastMessageDto sse_decode_box_autoadd_last_message_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   SessionDto sse_decode_box_autoadd_session_dto(SseDeserializer deserializer);
@@ -106,7 +177,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  LastMessageDto sse_decode_last_message_dto(SseDeserializer deserializer);
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  List<RoomDto> sse_decode_list_room_dto(SseDeserializer deserializer);
 
   @protected
   LogoutOutcomeDto sse_decode_logout_outcome_dto(SseDeserializer deserializer);
@@ -115,7 +195,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   MatrixError sse_decode_matrix_error(SseDeserializer deserializer);
 
   @protected
+  MessageKindDto sse_decode_message_kind_dto(SseDeserializer deserializer);
+
+  @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  LastMessageDto? sse_decode_opt_box_autoadd_last_message_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RoomDto sse_decode_room_dto(SseDeserializer deserializer);
+
+  @protected
   SessionDto sse_decode_session_dto(SseDeserializer deserializer);
+
+  @protected
+  SyncStateDto sse_decode_sync_state_dto(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -125,6 +228,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt sse_decode_usize(SseDeserializer deserializer);
+
+  @protected
+  void sse_encode_AnyhowException(
+    AnyhowException self,
+    SseSerializer serializer,
+  );
 
   @protected
   void
@@ -148,10 +257,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_StreamSink_list_room_dto_Sse(
+    RustStreamSink<List<RoomDto>> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_sync_state_dto_Sse(
+    RustStreamSink<SyncStateDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_last_message_dto(
+    LastMessageDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_session_dto(
@@ -163,10 +296,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_last_message_dto(
+    LastMessageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_list_room_dto(List<RoomDto> self, SseSerializer serializer);
 
   @protected
   void sse_encode_logout_outcome_dto(
@@ -178,7 +323,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_matrix_error(MatrixError self, SseSerializer serializer);
 
   @protected
+  void sse_encode_message_kind_dto(
+    MessageKindDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_last_message_dto(
+    LastMessageDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_room_dto(RoomDto self, SseSerializer serializer);
+
+  @protected
   void sse_encode_session_dto(SessionDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_sync_state_dto(SyncStateDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);

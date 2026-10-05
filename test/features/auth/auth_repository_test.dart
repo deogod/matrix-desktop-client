@@ -4,85 +4,10 @@ import 'package:matrix_client/core/architecture/architecture.dart';
 import 'package:matrix_client/features/auth/auth_repository.dart';
 import 'package:matrix_client/features/auth/session.dart';
 import 'package:matrix_client/features/auth/session_store.dart';
-import 'package:matrix_client/src/rust/api/client.dart';
 import 'package:matrix_client/src/rust/api/error.dart';
 import 'package:matrix_client/src/rust/api/session.dart';
 
-typedef HandleLoginCall = ({
-  String homeserver,
-  String username,
-  String password,
-  String dataDir,
-  String passphrase,
-});
-
-typedef HandleRestoreCall = ({
-  SessionDto session,
-  String dataDir,
-  String passphrase,
-});
-
-final class FakeMatrixClientHandle implements MatrixClientHandle {
-  Object? loginError;
-  Object? restoreError;
-  Object? logoutError;
-  LogoutOutcomeDto logoutOutcome = LogoutOutcomeDto.complete;
-
-  final loginCalls = <HandleLoginCall>[];
-  final restoreCalls = <HandleRestoreCall>[];
-  int logoutCalls = 0;
-
-  @override
-  Future<SessionDto> login({
-    required String homeserver,
-    required String username,
-    required String password,
-    required String dataDir,
-    required String passphrase,
-  }) async {
-    loginCalls.add((
-      homeserver: homeserver,
-      username: username,
-      password: password,
-      dataDir: dataDir,
-      passphrase: passphrase,
-    ));
-    if (loginError case final error?) throw error;
-    final number = loginCalls.length;
-    return SessionDto(
-      homeserver: 'https://matrix-client.matrix.org/',
-      userId: '@alice:matrix.org',
-      deviceId: 'DEVICE$number',
-      accessToken: 'token-$number',
-      storeId: 'store$number',
-    );
-  }
-
-  @override
-  Future<void> restoreSession({
-    required SessionDto session,
-    required String dataDir,
-    required String passphrase,
-  }) async {
-    restoreCalls.add(
-      (session: session, dataDir: dataDir, passphrase: passphrase),
-    );
-    if (restoreError case final error?) throw error;
-  }
-
-  @override
-  Future<LogoutOutcomeDto> logout() async {
-    logoutCalls++;
-    if (logoutError case final error?) throw error;
-    return logoutOutcome;
-  }
-
-  @override
-  void dispose() {}
-
-  @override
-  bool get isDisposed => false;
-}
+import '../../helpers/fake_matrix_client_handle.dart';
 
 final class FakeSessionStore implements SessionStore {
   StoredSession? session;
@@ -212,6 +137,7 @@ void main() {
         MatrixError.network: isErr<NetworkFailure>(),
         MatrixError.sessionExpired: isErr<SessionExpiredFailure>(),
         MatrixError.storage: isErr<StorageFailure>(),
+        MatrixError.unsupportedHomeserver: isErr<InvalidHomeserverFailure>(),
         MatrixError.unknown: isErr<UnknownFailure>(),
       };
 

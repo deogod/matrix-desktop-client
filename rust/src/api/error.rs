@@ -7,5 +7,7 @@ pub enum MatrixError {
     Network,
     SessionExpired,
     Storage,
+    // The homeserver does not offer the sliding sync (MSC4186) the room list relies on.
+    UnsupportedHomeserver,
     Unknown,
 }

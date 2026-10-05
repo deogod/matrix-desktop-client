@@ -123,7 +123,8 @@ final class MatrixAuthRepository implements AuthRepository {
   static bool _endsSession(MatrixError error) => switch (error) {
         MatrixError.sessionExpired ||
         MatrixError.storage ||
-        MatrixError.invalidHomeserver =>
+        MatrixError.invalidHomeserver ||
+        MatrixError.unsupportedHomeserver =>
           true,
         MatrixError.network ||
         MatrixError.unknown ||

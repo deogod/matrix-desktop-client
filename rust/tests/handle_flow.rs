@@ -1,6 +1,6 @@
 // Runs the MatrixClientHandle session lifecycle against a local mock homeserver.
 
-use std::fs;
+use std::{fs, time::Duration};
 
 use rust_lib_matrix_client::api::{
     client::MatrixClientHandle,
@@ -10,7 +10,7 @@ use rust_lib_matrix_client::api::{
 use serde_json::json;
 use tempfile::TempDir;
 use wiremock::{
-    matchers::{body_partial_json, method, path},
+    matchers::{body_partial_json, method, path, path_regex},
     Mock, MockServer, ResponseTemplate,
 };
 
@@ -20,6 +20,30 @@ const MOCK_PASSWORD: &str = "mock-password";
 // A dedicated server instead of the pooled `MockServer::start()`, so that dropping it
 // really closes the port and the unreachable-server tests are meaningful.
 async fn homeserver() -> MockServer {
+    let server = homeserver_without_sliding_sync().await;
+    Mock::given(method("GET"))
+        .and(path("/_matrix/client/versions"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "versions": ["v1.11"],
+            "unstable_features": { "org.matrix.simplified_msc3575": true },
+        })))
+        .with_priority(1)
+        .mount(&server)
+        .await;
+    // Answers like an idle long poll, so the sync started after login stays quiet.
+    Mock::given(method("POST"))
+        .and(path_regex("simplified_msc3575/sync$"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(json!({ "pos": "0" }))
+                .set_delay(Duration::from_secs(30)),
+        )
+        .mount(&server)
+        .await;
+    server
+}
+
+async fn homeserver_without_sliding_sync() -> MockServer {
     let server = MockServer::builder().start().await;
     Mock::given(method("GET"))
         .and(path("/_matrix/client/versions"))
@@ -281,4 +305,30 @@ async fn logout_without_the_server_is_local_only() {
 
     assert_eq!(handle.logout().await, Ok(LogoutOutcomeDto::LocalOnly));
     assert!(store_ids(&dir).is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn login_rejects_a_server_without_sliding_sync() {
+    let server = homeserver_without_sliding_sync().await;
+    Mock::given(method("POST"))
+        .and(path("/_matrix/client/v3/login"))
+        .respond_with(ResponseTemplate::new(403))
+        .expect(0)
+        .named("login")
+        .mount(&server)
+        .await;
+    let dir = data_dir();
+
+    let result = login(
+        &MatrixClientHandle::new(true),
+        &server,
+        &dir,
+        MOCK_PASSWORD,
+        "passphrase",
+    )
+    .await;
+
+    assert_eq!(result.err(), Some(MatrixError::UnsupportedHomeserver));
+    assert!(store_ids(&dir).is_empty());
+    server.verify().await;
 }

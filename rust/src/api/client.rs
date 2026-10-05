@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::anyhow;
 use flutter_rust_bridge::frb;
 use matrix_sdk::Client;
 use tokio::sync::Mutex;
@@ -11,9 +12,11 @@ use tracing::warn;
 use crate::{
     api::{
         error::MatrixError,
+        room::{RoomDto, SyncStateDto},
         session::{LogoutOutcomeDto, SessionDto},
     },
-    matrix::{auth, homeserver::parse_homeserver_input, store},
+    frb_generated::StreamSink,
+    matrix::{auth, homeserver::parse_homeserver_input, rooms, store, sync::SyncSession},
 };
 
 #[frb(opaque)]
@@ -25,6 +28,7 @@ pub struct MatrixClientHandle {
 struct ActiveSession {
     client: Client,
     data_dir: PathBuf,
+    sync: SyncSession,
 }
 
 impl MatrixClientHandle {
@@ -60,21 +64,35 @@ impl MatrixClientHandle {
             self.allow_insecure_localhost,
         )
         .await;
-
-        match result {
-            Ok((client, session)) => {
-                *active = Some(ActiveSession {
-                    client,
-                    data_dir: data_dir.clone(),
-                });
-                remove_other_stores(&data_dir, &new_store.id);
-                Ok(session)
-            }
+        let (client, session) = match result {
+            Ok(logged_in) => logged_in,
             Err(error) => {
                 remove_store(&data_dir, &new_store.id);
-                Err(error)
+                return Err(error);
             }
+        };
+
+        let sync = match SyncSession::start(&client).await {
+            Ok(sync) => sync,
+            Err(error) => {
+                // A session that cannot sync is useless, so it is closed on the server too.
+                auth::logout(&client).await;
+                drop(client);
+                remove_store(&data_dir, &new_store.id);
+                return Err(error);
+            }
+        };
+
+        if let Some(previous) = active.take() {
+            previous.sync.stop().await;
         }
+        *active = Some(ActiveSession {
+            client,
+            data_dir: data_dir.clone(),
+            sync,
+        });
+        remove_other_stores(&data_dir, &new_store.id);
+        Ok(session)
     }
 
     pub async fn restore_session(
@@ -85,7 +103,9 @@ impl MatrixClientHandle {
     ) -> Result<(), MatrixError> {
         let data_dir = PathBuf::from(data_dir);
         let mut active = self.active.lock().await;
-        *active = None;
+        if let Some(previous) = active.take() {
+            previous.sync.stop().await;
+        }
 
         // An empty crypto store would get new keys for a device the server already knows.
         let Some(store_path) = store::existing_store(&data_dir, &session.store_id) else {
@@ -108,9 +128,11 @@ impl MatrixClientHandle {
             return Err(error);
         }
 
+        let sync = SyncSession::start(&client).await?;
         *active = Some(ActiveSession {
             client,
             data_dir: data_dir.clone(),
+            sync,
         });
         // Leftovers from a login that was interrupted before finishing.
         remove_other_stores(&data_dir, &store_id);
@@ -119,14 +141,61 @@ impl MatrixClientHandle {
 
     pub async fn logout(&self) -> Result<LogoutOutcomeDto, MatrixError> {
         let mut active = self.active.lock().await;
-        let Some(ActiveSession { client, data_dir }) = active.take() else {
+        let Some(ActiveSession {
+            client,
+            data_dir,
+            sync,
+        }) = active.take()
+        else {
             return Ok(LogoutOutcomeDto::Complete);
         };
 
+        sync.stop().await;
         let outcome = auth::logout(&client).await;
+        drop(sync);
         drop(client);
         store::remove_all_stores(&data_dir).map_err(storage_error)?;
         Ok(outcome)
+    }
+
+    pub async fn stop_sync(&self) {
+        if let Some(session) = self.active.lock().await.as_ref() {
+            session.sync.stop().await;
+        }
+    }
+
+    // Stream functions report problems through the sink: an `Err` returned here would
+    // not reach the Dart stream.
+    pub async fn sync_state(&self, sink: StreamSink<SyncStateDto>) {
+        let active = self.active.lock().await;
+        let Some(session) = active.as_ref() else {
+            let _ = sink.add(SyncStateDto::SessionExpired);
+            return;
+        };
+
+        let updates = session
+            .sync
+            .state_updates(move |state| sink.add(state).is_ok());
+        session.sync.spawn(updates);
+    }
+
+    pub async fn rooms(&self, sink: StreamSink<Vec<RoomDto>>) {
+        let active = self.active.lock().await;
+        let Some(session) = active.as_ref() else {
+            let _ = sink.add_error(anyhow!("No active session"));
+            return;
+        };
+        let Ok(room_list) = rooms::all_rooms(&session.sync.room_list_service()).await else {
+            let _ = sink.add_error(anyhow!("Could not open the room list"));
+            return;
+        };
+
+        let client = session.client.clone();
+        session
+            .sync
+            .spawn(rooms::forward_rooms(room_list, client, move |rooms| {
+                sink.add(rooms).is_ok()
+            }));
     }
 }
 

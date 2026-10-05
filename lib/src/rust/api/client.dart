@@ -8,6 +8,7 @@ import 'error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'room.dart';
 import 'session.dart';
+import 'timeline.dart';
 
 // These functions are ignored because they are not marked as `pub`: `remove_other_stores`, `remove_store`, `storage_error`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ActiveSession`
@@ -28,6 +29,8 @@ abstract class MatrixClientHandle implements RustOpaqueInterface {
       RustLib.instance.api.crateApiClientMatrixClientHandleNew(
         allowInsecureLocalhost: allowInsecureLocalhost,
       );
+
+  Future<TimelineHandle> openTimeline({required String roomId});
 
   Future<void> restoreSession({
     required SessionDto session,

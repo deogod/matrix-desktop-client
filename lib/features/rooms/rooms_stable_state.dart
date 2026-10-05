@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/architecture/architecture.dart';
-import 'room.dart';
+import '../timeline/timeline_panel.dart';
 import 'room_tile.dart';
 import 'rooms_bloc.dart';
 import 'rooms_repository.dart';
@@ -100,11 +100,12 @@ class RoomsStableState extends StatelessWidget {
     );
   }
 
+  // The key recreates the panel and its bloc when another room is selected.
   Widget _buildRoomPanel(BuildContext context) {
     final room = data.selectedRoom;
     return room == null
         ? _buildPlaceholder(context)
-        : _buildSelectedRoom(context, room);
+        : TimelinePanel(key: ValueKey(room.id), room: room);
   }
 
   Widget _buildPlaceholder(BuildContext context) {
@@ -121,31 +122,6 @@ class RoomsStableState extends StatelessWidget {
             style: theme.textTheme.titleMedium?.copyWith(
               color: colors.onSurfaceVariant,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Replaced by the timeline panel in the next step.
-  Widget _buildSelectedRoom(BuildContext context, Room room) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircleAvatar(
-            radius: 32,
-            backgroundColor: colors.primaryContainer,
-            foregroundColor: colors.onPrimaryContainer,
-            child: Text(room.initial, style: theme.textTheme.headlineSmall),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            room.name ?? 'Sala sem nome',
-            style: theme.textTheme.titleLarge,
-            textAlign: TextAlign.center,
           ),
         ],
       ),

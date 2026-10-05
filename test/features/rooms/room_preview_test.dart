@@ -28,6 +28,22 @@ void main() {
       expect(roomPreview(room(message)), 'Alice: oi');
     });
 
+    test('omite o remetente quando a sala tem o nome dele', () {
+      const named = Room(
+        id: '!room:matrix.org',
+        name: 'Matrix.org (Official Account)',
+        initial: 'M',
+        lastMessage: LastMessage(
+          kind: MessageKind.text,
+          isOwn: false,
+          senderName: 'Matrix.org (Official Account)',
+          body: 'Bem-vindo',
+        ),
+      );
+
+      expect(roomPreview(named), 'Bem-vindo');
+    });
+
     test('em conversa direta omite o remetente', () {
       final message = fromAlice(MessageKind.text, body: 'oi');
 

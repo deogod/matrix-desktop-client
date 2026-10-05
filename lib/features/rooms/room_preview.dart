@@ -23,9 +23,10 @@ String? roomPreview(Room room) {
     return ['*', ?author, content].join(' ');
   }
   if (message.isOwn) return 'Você: $content';
-  // In a direct chat the room name already says who wrote it.
-  if (!room.isDirect && author != null) return '$author: $content';
-  return content;
+  // When the room is a direct chat, or is named after the sender (a two-person
+  // room not marked as direct), the room name already says who wrote it.
+  if (room.isDirect || author == null || author == room.name) return content;
+  return '$author: $content';
 }
 
 String activityLabel(DateTime time, {required DateTime now}) {

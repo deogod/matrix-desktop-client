@@ -4,7 +4,7 @@
 
 Contexto: o cliente precisa de TLS, store persistente e suporte a salas criptografadas nas três plataformas desktop.
 
-Decisão: `matrix-sdk = "=0.19.1"` com `default-features = false` e as features `e2e-encryption`, `automatic-room-key-forwarding`, `bundled-sqlite` e `rustls-aws-lc-rs`. O `matrix-sdk-ui` é fixado na mesma versão, `=0.19.1`, e o lockfile resolve todos os crates `matrix-sdk-*` numa única versão. Nessa versão o reqwest usa sempre rustls; a feature só escolhe o provider de criptografia. O SQLite vai embutido porque o Windows não tem `libsqlite3` e no Linux exigiria o pacote de desenvolvimento.
+Decisão: `matrix-sdk = "=0.19.1"` com `default-features = false` e as features `e2e-encryption`, `automatic-room-key-forwarding`, `bundled-sqlite` e `rustls-aws-lc-rs`. O `matrix-sdk-ui` e o `matrix-sdk-base` (usado só para o tipo `UtdCause`, que os outros dois não reexportam) são fixados na mesma versão, `=0.19.1`, e o lockfile resolve todos os crates `matrix-sdk-*` numa única versão. Nessa versão o reqwest usa sempre rustls; a feature só escolhe o provider de criptografia. O SQLite vai embutido porque o Windows não tem `libsqlite3` e no Linux exigiria o pacote de desenvolvimento.
 
 Alternativas: manter as features default (equivalente hoje, mas implícito e sem SQLite embutido); usar o SQLite do sistema.
 
@@ -167,6 +167,38 @@ Contexto: o sync deve parar no logout e ao fechar o app.
 Decisão: o logout para o `SyncService` antes de encerrar a sessão no servidor. Ao fechar o app, um `AppLifecycleListener` com `onExitRequested` chama `stopSync()` com timeout de 2 segundos, para o app fechar mesmo sem rede. Verificado no macOS: pedir para sair chama o callback, o sync para e o app fecha em cerca de 1 segundo.
 
 Alternativas: deixar o processo encerrar o sync, sem dar ao SDK a chance de terminar as requisições em andamento.
+
+## Timeline com matrix-sdk-ui
+
+Contexto: a conversa precisa de mensagens em tempo real, envio com eco local e histórico sob demanda, também em salas cifradas.
+
+Decisão: `Timeline` do `matrix-sdk-ui` (`RoomExt::timeline()`). O envio usa `Timeline::send`, que passa pela fila de envio do SDK: a mensagem aparece na hora como "enviando" e muda para enviada ou falhou. A paginação usa `paginate_backwards` com 20 eventos por vez. Como na lista de salas, o Rust aplica os diffs e envia a lista inteira de mensagens; itens que não são mensagem (divisor de data, marcador de leitura, eventos de estado) ficam como vazios para os índices continuarem batendo. Ao abrir uma sala o handle chama `reset_and_add_room_subscriptions`, porque sem subscription o sync da lista de salas só traz o último evento de cada sala por resposta e mensagens que chegam juntas se perderiam. O crate usa `#![recursion_limit = "256"]`: as futures da timeline são mais fundas do que o limite padrão deixa o compilador montar.
+
+Alternativas: montar a conversa a partir do event cache e do `room.send`, refazendo eco local, estados de envio e descriptografia tardia.
+
+## Uma timeline por painel, dona da sua task
+
+Contexto: cada painel de conversa assina um stream alimentado por uma task no Rust. Quando o Dart cancela o stream, a task só perceberia no próximo envio; numa sala sem atividade ela ficaria viva.
+
+Decisão: `open_timeline` devolve um `TimelineHandle` opaco, um por painel, que guarda a task num `OwnedTask`: substituir ou descartar o dono aborta a task. O repository cancela a assinatura e chama `dispose()` no handle quando o stream é cancelado (troca de sala ou fechamento do painel), inclusive se o cancelamento chega antes de a timeline terminar de abrir. Assim a task termina na hora, sem depender de atividade na sala.
+
+Alternativas: uma função de stream por sala no handle principal, com encerramento só no envio seguinte ou com identificadores de assinatura vindos do Dart.
+
+## Mensagens que não podem ser descriptografadas
+
+Contexto: em salas cifradas, uma mensagem pode chegar sem a chave para lê-la, por motivos diferentes.
+
+Decisão: o item vem com o motivo informado pelo SDK (`UtdCause`), e a tela mostra um texto específico: enviada antes de entrar na sala, histórico indisponível neste dispositivo, remetente que não compartilha com dispositivos não verificados, chave retida pelo remetente, dispositivo do remetente não confiável, ou o texto genérico. Quando a chave chega depois, o SDK atualiza o item e o texto vira a mensagem.
+
+Alternativas: um único texto genérico, que esconde o caso mais provável com clientes que excluem dispositivos não verificados.
+
+## Fila de envio retomada quando a conexão volta
+
+Contexto: numa falha de rede, a fila de envio do SDK desativa a sala e guarda a mensagem, que aparece como "não enviada". O `SyncService` não reativa a fila.
+
+Decisão: a sessão de sync observa o `SyncService` e, quando ele volta a `Running`, chama `send_queue().set_enabled(true)`. As mensagens que falharam por falta de rede saem sozinhas quando a rede volta.
+
+Alternativas: deixar a fila parada até o próximo login, ou reenvio manual (fora desta etapa).
 
 ## Testes do handle com servidor simulado
 

@@ -6,6 +6,7 @@ import '../features/auth/session_store.dart';
 import '../features/auth/splash/splash_bloc.dart';
 import '../features/rooms/rooms_bloc.dart';
 import '../features/rooms/rooms_repository.dart';
+import '../features/timeline/timeline_repository.dart';
 import '../src/rust/api/client.dart';
 import 'architecture/architecture.dart';
 
@@ -23,6 +24,9 @@ void configureDependencies() {
   );
   locator.registerLazySingleton<RoomsRepository>(
     () => MatrixRoomsRepository(handle: locator.get()),
+  );
+  locator.registerLazySingleton<TimelineRepository>(
+    () => MatrixTimelineRepository(handle: locator.get()),
   );
 
   locator.registerFactory<SplashBloc>(

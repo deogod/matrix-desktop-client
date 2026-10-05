@@ -24,7 +24,19 @@ Verificação de dispositivo e cross-signing, mídia, edição, reações, threa
 - Avatares são só a inicial do nome; imagens de avatar ficam para quando houver suporte a mídia.
 - Convites e espaços não aparecem na lista.
 - Se um servidor deixar de oferecer MSC4186 depois do login, a restauração funciona, mas o indicador alterna entre offline e sincronizando.
+- A queda de rede leva de 1 a 3 minutos para aparecer no indicador. O SDK fixa, para cada requisição de sliding sync, timeout de 60 s (30 s de long poll mais 30 s de rede) e até 3 tentativas; o estado só muda quando a última tentativa falha. Num teste com o Wi-Fi desligado, a requisição em andamento esperou o timeout e as tentativas seguintes falharam na hora por erro de DNS, e o indicador foi para Offline cerca de 1 minuto depois da queda. Quando as conexões ficam penduradas em vez de falhar (rede presente sem rota, servidor que para de responder), cada tentativa espera os 60 s e o atraso chega a cerca de 3 minutos. A volta da rede é rápida: o modo offline consulta `/versions` a cada poucos segundos. Melhoria possível: entregar ao SDK um cliente HTTP com keepalive de HTTP/2 (pings com timeout curto), que fecha a conexão morta em dezenas de segundos e faz a requisição em andamento falhar logo.
 - O fechamento com parada do sync foi verificado só no macOS.
+
+## Conversa
+
+- Fora desta etapa: separador de dia, reenvio manual de mensagens que falharam (as que falham por falta de rede saem sozinhas quando a conexão volta) e marcação como lida.
+- Só texto puro: sem formatação HTML ou Markdown, respostas, reações e threads. Edições aparecem com o texto novo, sem indicação de que foram editadas.
+- Mídia, figurinhas e localização aparecem como rótulo ("Imagem", "Arquivo").
+- Eventos de estado (entradas, saídas, mudanças de nome) não aparecem na conversa.
+- Ao chegar mensagem com a conversa rolada para cima, o conteúdo visível sobe a altura da mensagem nova; a lista só acompanha o fim quando já está nele.
+- Mensagens anteriores ao login não podem ser lidas: não há backup de chaves nem verificação do dispositivo.
+- Clientes que excluem dispositivos não verificados (modo "excluir dispositivos inseguros" do Element, MSC4153) não enviam a chave para este dispositivo; as mensagens deles aparecem como não descriptografáveis, com esse motivo.
+- Envio e descriptografia em sala cifrada não foram verificados contra um servidor real no ambiente de desenvolvimento.
 
 ## Armazenamento seguro
 

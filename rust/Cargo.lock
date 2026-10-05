@@ -3137,6 +3137,7 @@ dependencies = [
  "flutter_rust_bridge",
  "futures-util",
  "matrix-sdk",
+ "matrix-sdk-base",
  "matrix-sdk-ui",
  "rand 0.10.3",
  "serde_json",

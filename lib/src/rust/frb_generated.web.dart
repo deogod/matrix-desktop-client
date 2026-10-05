@@ -10,6 +10,7 @@ import 'api/client.dart';
 import 'api/error.dart';
 import 'api/room.dart';
 import 'api/session.dart';
+import 'api/timeline.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -27,6 +28,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   get rust_arc_decrement_strong_count_MatrixClientHandlePtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle;
 
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_TimelineHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle;
+
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw);
 
@@ -37,8 +42,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  TimelineHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+    dynamic raw,
+  );
+
+  @protected
   MatrixClientHandle
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    dynamic raw,
+  );
+
+  @protected
+  TimelineHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
     dynamic raw,
   );
 
@@ -49,9 +66,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  TimelineHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+    dynamic raw,
+  );
+
+  @protected
   RustStreamSink<List<RoomDto>> dco_decode_StreamSink_list_room_dto_Sse(
     dynamic raw,
   );
+
+  @protected
+  RustStreamSink<List<TimelineItemDto>>
+  dco_decode_StreamSink_list_timeline_item_dto_Sse(dynamic raw);
 
   @protected
   RustStreamSink<SyncStateDto> dco_decode_StreamSink_sync_state_dto_Sse(
@@ -74,6 +101,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SessionDto dco_decode_box_autoadd_session_dto(dynamic raw);
 
   @protected
+  UndecryptableReasonDto dco_decode_box_autoadd_undecryptable_reason_dto(
+    dynamic raw,
+  );
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
@@ -87,6 +119,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<RoomDto> dco_decode_list_room_dto(dynamic raw);
+
+  @protected
+  List<TimelineItemDto> dco_decode_list_timeline_item_dto(dynamic raw);
 
   @protected
   LogoutOutcomeDto dco_decode_logout_outcome_dto(dynamic raw);
@@ -107,7 +142,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LastMessageDto? dco_decode_opt_box_autoadd_last_message_dto(dynamic raw);
 
   @protected
+  UndecryptableReasonDto? dco_decode_opt_box_autoadd_undecryptable_reason_dto(
+    dynamic raw,
+  );
+
+  @protected
   RoomDto dco_decode_room_dto(dynamic raw);
+
+  @protected
+  SendStateDto dco_decode_send_state_dto(dynamic raw);
 
   @protected
   SessionDto dco_decode_session_dto(dynamic raw);
@@ -116,10 +159,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SyncStateDto dco_decode_sync_state_dto(dynamic raw);
 
   @protected
+  TimelineItemDto dco_decode_timeline_item_dto(dynamic raw);
+
+  @protected
   int dco_decode_u_32(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
+
+  @protected
+  UndecryptableReasonDto dco_decode_undecryptable_reason_dto(dynamic raw);
 
   @protected
   void dco_decode_unit(dynamic raw);
@@ -137,8 +186,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  TimelineHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   MatrixClientHandle
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TimelineHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
     SseDeserializer deserializer,
   );
 
@@ -149,7 +210,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  TimelineHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustStreamSink<List<RoomDto>> sse_decode_StreamSink_list_room_dto_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustStreamSink<List<TimelineItemDto>>
+  sse_decode_StreamSink_list_timeline_item_dto_Sse(
     SseDeserializer deserializer,
   );
 
@@ -176,6 +249,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SessionDto sse_decode_box_autoadd_session_dto(SseDeserializer deserializer);
 
   @protected
+  UndecryptableReasonDto sse_decode_box_autoadd_undecryptable_reason_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
@@ -189,6 +267,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<RoomDto> sse_decode_list_room_dto(SseDeserializer deserializer);
+
+  @protected
+  List<TimelineItemDto> sse_decode_list_timeline_item_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   LogoutOutcomeDto sse_decode_logout_outcome_dto(SseDeserializer deserializer);
@@ -211,7 +294,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  UndecryptableReasonDto? sse_decode_opt_box_autoadd_undecryptable_reason_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RoomDto sse_decode_room_dto(SseDeserializer deserializer);
+
+  @protected
+  SendStateDto sse_decode_send_state_dto(SseDeserializer deserializer);
 
   @protected
   SessionDto sse_decode_session_dto(SseDeserializer deserializer);
@@ -220,10 +311,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SyncStateDto sse_decode_sync_state_dto(SseDeserializer deserializer);
 
   @protected
+  TimelineItemDto sse_decode_timeline_item_dto(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
+
+  @protected
+  UndecryptableReasonDto sse_decode_undecryptable_reason_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
@@ -246,8 +345,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+    TimelineHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
     MatrixClientHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+    TimelineHandle self,
     SseSerializer serializer,
   );
 
@@ -259,8 +372,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+    TimelineHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_StreamSink_list_room_dto_Sse(
     RustStreamSink<List<RoomDto>> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_list_timeline_item_dto_Sse(
+    RustStreamSink<List<TimelineItemDto>> self,
     SseSerializer serializer,
   );
 
@@ -295,6 +421,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_undecryptable_reason_dto(
+    UndecryptableReasonDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
@@ -314,6 +446,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_room_dto(List<RoomDto> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_timeline_item_dto(
+    List<TimelineItemDto> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_logout_outcome_dto(
@@ -346,7 +484,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_undecryptable_reason_dto(
+    UndecryptableReasonDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_room_dto(RoomDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_send_state_dto(SendStateDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_session_dto(SessionDto self, SseSerializer serializer);
@@ -355,10 +502,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_sync_state_dto(SyncStateDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_timeline_item_dto(
+    TimelineItemDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_undecryptable_reason_dto(
+    UndecryptableReasonDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
@@ -387,6 +546,22 @@ class RustLibWire implements BaseWire {
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
         ptr,
       );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+        ptr,
+      );
 }
 
 @JS('wasm_bindgen')
@@ -402,6 +577,16 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void
   rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMatrixClientHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTimelineHandle(
     int ptr,
   );
 }

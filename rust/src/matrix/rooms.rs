@@ -22,9 +22,12 @@ use matrix_sdk_ui::{
 use tracing::warn;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::api::{
-    error::MatrixError,
-    room::{LastMessageDto, MessageKindDto, RoomDto},
+use crate::{
+    api::{
+        error::MatrixError,
+        room::{LastMessageDto, MessageKindDto, RoomDto},
+    },
+    matrix::message::message_summary,
 };
 
 const PAGE_SIZE: usize = 200;
@@ -225,17 +228,8 @@ fn message_content(content: &AnyMessageLikeEventContent) -> (MessageKindDto, Opt
 }
 
 fn message_type(message: &MessageType) -> (MessageKindDto, Option<String>) {
-    match message {
-        MessageType::Text(content) => (MessageKindDto::Text, Some(preview_text(&content.body))),
-        MessageType::Emote(content) => (MessageKindDto::Emote, Some(preview_text(&content.body))),
-        MessageType::Notice(content) => (MessageKindDto::Notice, Some(preview_text(&content.body))),
-        MessageType::Image(_) => (MessageKindDto::Image, None),
-        MessageType::Video(_) => (MessageKindDto::Video, None),
-        MessageType::Audio(_) => (MessageKindDto::Audio, None),
-        MessageType::File(_) => (MessageKindDto::File, None),
-        MessageType::Location(_) => (MessageKindDto::Location, None),
-        other => (MessageKindDto::Other, Some(preview_text(other.body()))),
-    }
+    let (kind, body) = message_summary(message);
+    (kind, body.map(preview_text))
 }
 
 // One line is enough for a preview, and long messages should not cross the bridge

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:matrix_client/src/rust/api/client.dart';
 import 'package:matrix_client/src/rust/api/room.dart';
 import 'package:matrix_client/src/rust/api/session.dart';
+import 'package:matrix_client/src/rust/api/timeline.dart';
 
 typedef HandleLoginCall = ({
   String homeserver,
@@ -86,9 +87,41 @@ final class FakeMatrixClientHandle implements MatrixClientHandle {
   @override
   Future<void> stopSync() async => stopSyncCalls++;
 
+  final openedTimelines = <String>[];
+  Completer<TimelineHandle>? pendingTimeline;
+  FakeTimelineHandle timeline = FakeTimelineHandle();
+
+  @override
+  Future<TimelineHandle> openTimeline({required String roomId}) {
+    openedTimelines.add(roomId);
+    return pendingTimeline?.future ?? Future.value(timeline);
+  }
+
   @override
   void dispose() {}
 
   @override
   bool get isDisposed => false;
+}
+
+final class FakeTimelineHandle implements TimelineHandle {
+  final messagesController = StreamController<List<TimelineItemDto>>();
+  final sentBodies = <String>[];
+  bool reachedStart = false;
+  bool _disposed = false;
+
+  @override
+  Stream<List<TimelineItemDto>> messages() => messagesController.stream;
+
+  @override
+  Future<void> sendMessage({required String body}) async => sentBodies.add(body);
+
+  @override
+  Future<bool> paginateBackwards() async => reachedStart;
+
+  @override
+  void dispose() => _disposed = true;
+
+  @override
+  bool get isDisposed => _disposed;
 }

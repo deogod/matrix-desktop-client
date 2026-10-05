@@ -14,9 +14,10 @@ use crate::{
         error::MatrixError,
         room::{RoomDto, SyncStateDto},
         session::{LogoutOutcomeDto, SessionDto},
+        timeline::TimelineHandle,
     },
     frb_generated::StreamSink,
-    matrix::{auth, homeserver::parse_homeserver_input, rooms, store, sync::SyncSession},
+    matrix::{auth, homeserver::parse_homeserver_input, rooms, store, sync::SyncSession, timeline},
 };
 
 #[frb(opaque)]
@@ -196,6 +197,14 @@ impl MatrixClientHandle {
             .spawn(rooms::forward_rooms(room_list, client, move |rooms| {
                 sink.add(rooms).is_ok()
             }));
+    }
+
+    pub async fn open_timeline(&self, room_id: String) -> Result<TimelineHandle, MatrixError> {
+        let active = self.active.lock().await;
+        let session = active.as_ref().ok_or(MatrixError::SessionExpired)?;
+        let timeline =
+            timeline::open(&session.client, &session.sync.room_list_service(), &room_id).await?;
+        Ok(TimelineHandle::new(timeline))
     }
 }
 
